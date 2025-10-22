@@ -42,6 +42,7 @@ Trabalhos/
 │   │   ├── search.py        # Implementação dos algoritmos
 │   │   └── heuristics.py    # Funções heurísticas
 │   └── ref/                 # Referências e materiais
+│   └── rel/                 # Relatório completo do trabalho
 ├── Trabalho02/              # (Em desenvolvimento)
 └── README.md                # Este arquivo
 ```
