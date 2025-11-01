@@ -1,0 +1,24 @@
+# ============================================================================
+# Trabalhos de Inteligência Artificial - CEFET
+# Dependências do Projeto
+# ============================================================================
+
+# Computação Numérica e Arrays
+numpy>=1.21.0
+
+# Monitoramento de Sistema e Recursos
+psutil>=5.8.0
+
+# Visualização de Dados e Gráficos
+matplotlib>=3.5.0
+
+# ============================================================================
+# Versões Testadas e Recomendadas:
+# - Python: 3.11.4
+# - NumPy: 1.24.3
+# - psutil: 5.9.5
+# - matplotlib: 3.7.1
+# ============================================================================
+
+# Para instalar todas as dependências, execute:
+# pip install -r requirements.txt
