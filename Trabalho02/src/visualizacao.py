@@ -26,12 +26,12 @@ def grafico_taxa_sucesso(ax, dados):
     algoritmos = list(dados.keys())
     taxas = [dados[alg]['taxa_sucesso'] for alg in algoritmos]
     
-    # Cores para cada algoritmo
-    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f']
+    # Cores para cada algoritmo (4 algoritmos)
+    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4']
     
     # Cria barras horizontais
     y_pos = np.arange(len(algoritmos))
-    barras = ax.barh(y_pos, taxas, color=cores, alpha=0.8, edgecolor='black', linewidth=1.5)
+    barras = ax.barh(y_pos, taxas, color=cores[:len(algoritmos)], alpha=0.8, edgecolor='black', linewidth=1.5)
     
     # Configurações
     ax.set_yticks(y_pos)
@@ -61,7 +61,10 @@ def grafico_taxa_sucesso(ax, dados):
     
     # Linha de referência em 100%
     ax.axvline(x=100, color='green', linestyle='--', linewidth=1.5, alpha=0.5)
-    ax.text(101, 2.3, '100%', fontsize=9, color='green', fontweight='bold')
+    
+    # Ajusta posição do texto baseado no número de algoritmos
+    y_text = len(algoritmos) - 0.7
+    ax.text(101, y_text, '100%', fontsize=9, color='green', fontweight='bold')
     
     # Grid
     ax.grid(axis='x', alpha=0.3, linestyle='--')
@@ -74,9 +77,9 @@ def grafico_tempo_vs_sucesso(ax, dados):
     tempos = [dados[alg]['tempo_medio'] * 1000 for alg in algoritmos]  # Converte para ms
     taxas = [dados[alg]['taxa_sucesso'] for alg in algoritmos]
     
-    # Cores e tamanhos
-    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f']
-    tamanhos = [200, 300, 400]  # Tamanhos diferentes para destacar
+    # Cores e tamanhos (4 algoritmos)
+    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4']
+    tamanhos = [200, 300, 400, 350]  # Tamanhos diferentes para destacar
     
     # Scatter plot
     for i, (alg, tempo, taxa) in enumerate(zip(algoritmos, tempos, taxas)):
@@ -101,7 +104,15 @@ def grafico_tempo_vs_sucesso(ax, dados):
     # Anotações nos pontos
     for i, (alg, tempo, taxa) in enumerate(zip(algoritmos, tempos, taxas)):
         # Nome do algoritmo (abreviado)
-        nome_curto = alg.split()[0] + (' RR' if 'Restart' in alg else '')
+        if 'Restart' in alg:
+            nome_curto = 'Random-Restart'
+        elif 'Annealing' in alg:
+            nome_curto = 'Simul. Annealing'
+        elif 'Laterais' in alg:
+            nome_curto = 'HC Laterais'
+        else:
+            nome_curto = 'HC Básico'
+            
         ax.annotate(nome_curto, 
                    xy=(tempo, taxa), 
                    xytext=(10, 10),
@@ -116,63 +127,66 @@ def grafico_tempo_vs_sucesso(ax, dados):
     ax.set_axisbelow(True)
 
 
-def grafico_boxplot_iteracoes(ax, dados_completos):
-    
+
+
+def grafico_barras_iteracoes(ax, dados_completos):
+    """
+    Gráfico de barras agrupadas mostrando min, média e max de iterações.
+    Alternativa ao boxplot para dados com escalas muito diferentes.
+    """
     algoritmos = list(dados_completos.keys())
     
-    # Prepara dados para o box plot
-    dados_iteracoes = []
+    # Prepara dados
+    minimos = []
+    medias = []
+    maximos = []
+    
     for alg in algoritmos:
         iteracoes = []
         for resultado in dados_completos[alg]:
-            # Usa 'iteracoes' ou 'iteracoes_total' dependendo do algoritmo
             iter_valor = resultado.get('iteracoes', resultado.get('iteracoes_total', 0))
             iteracoes.append(iter_valor)
-        dados_iteracoes.append(iteracoes)
+        
+        minimos.append(min(iteracoes))
+        medias.append(np.mean(iteracoes))
+        maximos.append(max(iteracoes))
+    
+    # Posições das barras
+    x = np.arange(len(algoritmos))
+    largura = 0.25
     
     # Cores
-    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f']
+    cores = ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4']
     
-    # Cria box plot
-    bp = ax.boxplot(dados_iteracoes, 
-                    labels=algoritmos,
-                    patch_artist=True,
-                    notch=True,
-                    showmeans=True,
-                    meanprops=dict(marker='D', markerfacecolor='red', markersize=8),
-                    medianprops=dict(color='black', linewidth=2),
-                    boxprops=dict(linewidth=1.5),
-                    whiskerprops=dict(linewidth=1.5),
-                    capprops=dict(linewidth=1.5))
-    
-    # Aplica cores
-    for patch, cor in zip(bp['boxes'], cores):
-        patch.set_facecolor(cor)
-        patch.set_alpha(0.7)
+    # Cria barras agrupadas
+    bars1 = ax.bar(x - largura, minimos, largura, label='Mínimo', 
+                   color=cores, alpha=0.4, edgecolor='black', linewidth=1)
+    bars2 = ax.bar(x, medias, largura, label='Média', 
+                   color=cores, alpha=0.7, edgecolor='black', linewidth=1.5)
+    bars3 = ax.bar(x + largura, maximos, largura, label='Máximo', 
+                   color=cores, alpha=1.0, edgecolor='black', linewidth=1)
     
     # Configurações
-    ax.set_ylabel('Número de Iterações', fontsize=11, fontweight='bold')
-    ax.set_title('📊 Distribuição de Iterações (Box Plot)', 
+    ax.set_ylabel('Número de Iterações (escala log)', fontsize=11, fontweight='bold')
+    ax.set_title('📊 Estatísticas de Iterações (Min/Média/Max)', 
                 fontsize=13, fontweight='bold', pad=15)
+    ax.set_xticks(x)
     ax.set_xticklabels(algoritmos, rotation=15, ha='right', fontsize=9)
     
-    # Adiciona valores médios
-    medias = [np.mean(dados) for dados in dados_iteracoes]
-    for i, (media, dados) in enumerate(zip(medias, dados_iteracoes)):
-        ax.text(i + 1, max(dados) + 3, f'μ={media:.1f}', 
-               ha='center', fontsize=9, fontweight='bold', color=cores[i])
+    # Escala logarítmica
+    ax.set_yscale('log')
     
-    # Grid
+    # Adiciona valores nas barras médias
+    for i, (bar, media) in enumerate(zip(bars2, medias)):
+        altura = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2, altura * 1.15,
+               f'{media:.1f}',
+               ha='center', va='bottom', fontsize=8, fontweight='bold', color=cores[i])
+    
+    # Grid e legenda
     ax.grid(axis='y', alpha=0.3, linestyle='--')
     ax.set_axisbelow(True)
-    
-    # Legenda
-    legenda_elementos = [
-        plt.Line2D([0], [0], marker='D', color='w', markerfacecolor='red', 
-                  markersize=8, label='Média'),
-        plt.Line2D([0], [0], color='black', linewidth=2, label='Mediana')
-    ]
-    ax.legend(handles=legenda_elementos, loc='upper right', fontsize=9)
+    ax.legend(loc='upper left', fontsize=9)
 
 
 def gerar_graficos(resultados_todos):
@@ -195,7 +209,7 @@ def gerar_graficos(resultados_todos):
     caminho_graficos = criar_diretorio_graficos()
     
     # Gráfico 1: Taxa de Sucesso
-    print("   → Criando Gráfico 1: Taxa de Sucesso...")
+    
     fig1, ax1 = plt.subplots(figsize=(10, 6))
     grafico_taxa_sucesso(ax1, dados_resumidos)
     plt.tight_layout()
@@ -205,7 +219,7 @@ def gerar_graficos(resultados_todos):
     plt.close(fig1)
     
     # Gráfico 2: Tempo vs Taxa de Sucesso
-    print("   → Criando Gráfico 2: Tempo vs Taxa de Sucesso...")
+    
     fig2, ax2 = plt.subplots(figsize=(10, 6))
     grafico_tempo_vs_sucesso(ax2, dados_resumidos)
     plt.tight_layout()
@@ -214,15 +228,12 @@ def gerar_graficos(resultados_todos):
     print(f"      ✅ Salvo: {caminho2}")
     plt.close(fig2)
     
-    # Gráfico 3: Box Plot de Iterações
-    print("   → Criando Gráfico 3: Box Plot de Iterações...")
+    # Gráfico 3: Barras Agrupadas de Iterações (Min/Média/Max)
+    
     fig3, ax3 = plt.subplots(figsize=(10, 6))
-    grafico_boxplot_iteracoes(ax3, resultados_todos)
+    grafico_barras_iteracoes(ax3, resultados_todos)
     plt.tight_layout()
-    caminho3 = os.path.join(caminho_graficos, 'grafico_03_boxplot_iteracoes.png')
+    caminho3 = os.path.join(caminho_graficos, 'grafico_03_barras_iteracoes.png')
     plt.savefig(caminho3, dpi=300, bbox_inches='tight')
     print(f"      ✅ Salvo: {caminho3}")
     plt.close(fig3)
-    
-    print(f"\n✅ 3 gráficos salvos com sucesso em: {caminho_graficos}")
-    print("="*70 + "\n")

@@ -8,6 +8,7 @@ from hill_climbing import (
     hill_climbing_basico,
     hill_climbing_com_laterais,
     random_restart_hill_climbing,
+    simulated_annealing,
     imprimir_tabuleiro
 )
 from visualizacao import gerar_graficos
@@ -95,6 +96,11 @@ def imprimir_estatisticas(nome_algoritmo, resultados):
         laterais = [r['laterais'] for r in resultados]
         avg_laterais = np.mean(laterais)
     
+    if 'movimentos_ruins_aceitos' in resultados[0]:
+        ruins = [r['movimentos_ruins_aceitos'] for r in resultados]
+        avg_ruins = np.mean(ruins)
+        taxa_aceitacao = (avg_ruins / avg_iteracoes * 100) if avg_iteracoes > 0 else 0
+    
     # Imprime estatísticas
     print(f"\n{'='*70}")
     print(f"ESTATÍSTICAS - {nome_algoritmo} (10 execuções em Cold Cache)")
@@ -128,6 +134,11 @@ def imprimir_estatisticas(nome_algoritmo, resultados):
     if 'laterais' in resultados[0]:
         print(f"\n↔  MOVIMENTOS LATERAIS:")
         print(f"   • Média: {avg_laterais:.1f} movimentos")
+    
+    if 'movimentos_ruins_aceitos' in resultados[0]:
+        print(f"\n🔥 MOVIMENTOS RUINS ACEITOS (Simulated Annealing):")
+        print(f"   • Média: {avg_ruins:.1f} movimentos")
+        print(f"   • Taxa de aceitação: {taxa_aceitacao:.1f}%")
     
     print(f"\n🎯 QUALIDADE DA SOLUÇÃO:")
     print(f"   • Conflitos médios: {avg_conflitos:.2f}")
@@ -293,7 +304,38 @@ def main():
         imprimir_tabuleiro(solucao['estado_final'])
     
     # ========================================================================
-    # 4. COMPARAÇÃO FINAL
+    # 4. SIMULATED ANNEALING
+    # ========================================================================
+    print("\n\n" + "="*70)
+    print("4️⃣  EXECUTANDO: SIMULATED ANNEALING")
+    print("="*70)
+    
+    resultados_annealing = []
+    for i in range(num_execucoes):
+        print(f"Execução {i+1}/10...", end=" ")
+        resultado = executar_com_cold_cache(
+            simulated_annealing,
+            temperatura_inicial=2000.0,
+            taxa_resfriamento=0.995,
+            max_iteracoes=100000,
+            verbose=False
+        )
+        resultados_annealing.append(resultado)
+        status = "✓" if resultado['sucesso'] else "✗"
+        print(f"{status} ({resultado['conflitos']} conflitos, "
+              f"{resultado['iteracoes']} iter, {resultado['movimentos_ruins_aceitos']} pioras)")
+    
+    imprimir_estatisticas("Simulated Annealing", resultados_annealing)
+    resultados_todos["Simulated Annealing"] = resultados_annealing
+    
+    # Mostra uma solução encontrada
+    solucao = next((r for r in resultados_annealing if r['sucesso']), resultados_annealing[0])
+    if solucao:
+        print("Exemplo de solução encontrada:")
+        imprimir_tabuleiro(solucao['estado_final'])
+    
+    # ========================================================================
+    # 5. COMPARAÇÃO FINAL
     # ========================================================================
     comparar_algoritmos(resultados_todos)
     

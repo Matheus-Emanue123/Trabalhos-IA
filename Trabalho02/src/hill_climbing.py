@@ -1,5 +1,6 @@
 """
-Implementação de algoritmos Hill Climbing para o problema das 8 Rainhas.
+Implementação de algoritmos Hill Climbing e Simulated Annealing 
+para o problema das 8 Rainhas.
 
 Autor: Matheus Emanuel
 Disciplina: Inteligência Artificial - CEFET-MG
@@ -8,6 +9,7 @@ Data: 2025
 
 import random
 import time
+import math
 from typing import List, Tuple, Dict
 
 
@@ -373,6 +375,119 @@ def random_restart_hill_climbing(max_reinicio: int = 100,
         'conflitos': melhor_conflitos,
         'reinicio': tentativa,
         'iteracoes_total': iteracoes_total,
+        'tempo': tempo_total,
+        'sucesso': sucesso
+    }
+
+
+# ============================================================================
+# ALGORITMO 4: SIMULATED ANNEALING
+# ============================================================================
+
+def simulated_annealing(temperatura_inicial: float = 2000.0,
+                       taxa_resfriamento: float = 0.995,
+                       max_iteracoes: int = 100000,
+                       verbose: bool = False) -> Dict:
+    
+    # Estado inicial
+    estado_atual = gerar_estado_aleatorio()
+    conflitos_atual = calcular_conflitos(estado_atual)
+    
+    # Melhor solução encontrada até agora
+    melhor_estado = estado_atual.copy()
+    melhor_conflitos = conflitos_atual
+    
+    temperatura = temperatura_inicial
+    tempo_inicio = time.time()
+    iteracoes = 0
+    movimentos_ruins_aceitos = 0
+    
+    if verbose:
+        print("\n" + "="*60)
+        print("SIMULATED ANNEALING (TÊMPERA SIMULADA)")
+        print("="*60)
+        print(f"Temperatura inicial: {temperatura_inicial}")
+        print(f"Taxa de resfriamento: {taxa_resfriamento}")
+        print(f"Max iterações: {max_iteracoes}")
+        imprimir_tabuleiro(estado_atual, "Estado Inicial")
+    
+    # Loop principal
+    while conflitos_atual > 0 and iteracoes < max_iteracoes and temperatura > 0.01:
+        iteracoes += 1
+        
+        # Gera um vizinho ALEATÓRIO (não o melhor!)
+        # Isso é diferente do Hill Climbing que sempre escolhe o melhor
+        vizinhos = gerar_vizinhos(estado_atual)
+        vizinho = random.choice(vizinhos)
+        conflitos_vizinho = calcular_conflitos(vizinho)
+        
+        # Calcula diferença de energia (Delta E)
+        delta_e = conflitos_vizinho - conflitos_atual
+        
+        # Decide se aceita o movimento
+        if delta_e < 0:
+            # Melhoria: SEMPRE aceita
+            estado_atual = vizinho
+            conflitos_atual = conflitos_vizinho
+            
+            if verbose and iteracoes % 100 == 0:
+                print(f"Iter {iteracoes}: Melhoria! {conflitos_atual + abs(delta_e)} → {conflitos_atual} (T={temperatura:.2f})")
+        
+        elif delta_e == 0:
+            # Lateral: sempre aceita (como Hill Climbing com laterais)
+            estado_atual = vizinho
+            conflitos_atual = conflitos_vizinho
+        
+        else:
+            # Piora: aceita com probabilidade P = e^(-ΔE/T)
+            probabilidade = math.exp(-delta_e / temperatura)
+            
+            if random.random() < probabilidade:
+                # ACEITA A PIORA! (isso é o diferencial)
+                estado_atual = vizinho
+                conflitos_atual = conflitos_vizinho
+                movimentos_ruins_aceitos += 1
+                
+                if verbose and iteracoes % 500 == 0:
+                    print(f"Iter {iteracoes}: Piora aceita! {conflitos_atual - delta_e} → {conflitos_atual} "
+                          f"(P={probabilidade:.2%}, T={temperatura:.2f})")
+        
+        # Atualiza melhor solução encontrada
+        if conflitos_atual < melhor_conflitos:
+            melhor_estado = estado_atual.copy()
+            melhor_conflitos = conflitos_atual
+            
+            if verbose:
+                print(f"\nIter {iteracoes}: 🎯 Novo melhor! {melhor_conflitos} conflitos (T={temperatura:.2f})")
+        
+        # Resfria a temperatura
+        temperatura *= taxa_resfriamento
+        
+        # Log periódico
+        if verbose and iteracoes % 1000 == 0:
+            print(f"\nIter {iteracoes}: Conflitos={conflitos_atual}, Melhor={melhor_conflitos}, T={temperatura:.2f}")
+    
+    tempo_total = time.time() - tempo_inicio
+    sucesso = (melhor_conflitos == 0)
+    
+    if verbose:
+        print("\n" + "="*60)
+        print("RESULTADO FINAL")
+        print("="*60)
+        imprimir_tabuleiro(melhor_estado, "Melhor Solução Encontrada")
+        print(f"\nStatus: {'SUCESSO! ✓' if sucesso else 'FALHA'}")
+        print(f"Iterações: {iteracoes}")
+        print(f"Movimentos ruins aceitos: {movimentos_ruins_aceitos}")
+        print(f"Taxa de aceitação de pioras: {movimentos_ruins_aceitos/iteracoes*100:.1f}%")
+        print(f"Temperatura final: {temperatura:.4f}")
+        print(f"Tempo total: {tempo_total:.6f} segundos")
+    
+    return {
+        'estado_final': melhor_estado,
+        'conflitos': melhor_conflitos,
+        'iteracoes': iteracoes,
+        'movimentos_ruins_aceitos': movimentos_ruins_aceitos,
+        'temperatura_final': temperatura,
         'tempo': tempo_total,
         'sucesso': sucesso
     }
